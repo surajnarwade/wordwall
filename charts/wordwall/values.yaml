@@ -8,7 +8,7 @@ backstage:
 
 image:
   repository: ghcr.io/surajnarwade/wordwall
-  tag: sha-2225c77
+  tag: sha-5a13579
   pullPolicy: IfNotPresent
 
 replicaCount: 1

@@ -1,0 +1,17 @@
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "wordwall.name" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "wordwall.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "wordwall.selectorLabels" . | nindent 6 }}
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - {{ .Values.namespace }}
