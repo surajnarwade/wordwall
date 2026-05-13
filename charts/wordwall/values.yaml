@@ -1,8 +1,8 @@
 # name is required — must be set on every install/upgrade
-# name: ""
+name: "suraj"
 
 image:
-  repository: wordwall
+  repository: ghcr.io/surajnarwade/wordwall
   tag: latest
   pullPolicy: IfNotPresent
 
