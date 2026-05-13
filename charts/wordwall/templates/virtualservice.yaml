@@ -10,7 +10,7 @@ spec:
   gateways:
     - {{ .Values.istio.gateway }}
   hosts:
-  - {{ .Values.name }}.sbx.suraj.com
+  - {{ include "wordwall.name" . }}.sbx.suraj.com
   http:
     - match:
         - uri:

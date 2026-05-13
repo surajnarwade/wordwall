@@ -1,8 +1,8 @@
 {{/*
-Expand the name — required field, fails fast if unset.
+Expand the name, falling back to the Helm release name.
 */}}
 {{- define "wordwall.name" -}}
-{{- required "values.name is required" .Values.name | trunc 63 | trimSuffix "-" }}
+{{- default .Release.Name .Values.name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{- define "wordwall.labels" -}}

@@ -1,5 +1,5 @@
-# name is required — must be set on every install/upgrade
-name: "suraj"
+# optional: defaults to the Helm release name when unset
+name: ""
 
 namespace: "playground"
 
