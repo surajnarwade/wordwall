@@ -1,0 +1,25 @@
+# name is required — must be set on every install/upgrade
+# name: ""
+
+image:
+  repository: wordwall
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  port: 8000
+
+resources: {}
+  # limits:
+  #   cpu: 500m
+  #   memory: 256Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+istio:
+  gateway: istio-system/ingressgateway
+  hosts:
+    - wordwall.example.com

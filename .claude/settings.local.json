@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install *)",
+      "Bash(python3 -m pip install -r /home/suraj/Projects/wordwall/requirements.txt)",
+      "Bash(pip3 --version)",
+      "Bash(uv --version)",
+      "Bash(.venv/bin/uvicorn app:app *)",
+      "Bash(curl -s http://localhost:8000/)",
+      "Bash(curl *)",
+      "Bash(.venv/bin/pip install *)"
+    ]
+  }
+}

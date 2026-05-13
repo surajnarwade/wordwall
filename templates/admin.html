@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Wall</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+}
+
+.header {
+  text-align: center;
+  padding: 1.4rem 2rem .8rem;
+  position: relative;
+  z-index: 2;
+}
+
+.header h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #e0e7ff, #a78bfa, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.header .count {
+  display: block;
+  font-size: .8rem;
+  font-weight: 400;
+  color: #475569;
+  margin-top: .35rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.wall {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 108px);
+}
+
+.item {
+  position: absolute;
+  transform-origin: center center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0)    rotate(-12deg); }
+  55%  { opacity: 1; transform: scale(1.32) rotate(4deg);   }
+  75%  {             transform: scale(0.92) rotate(-2deg);  }
+  90%  {             transform: scale(1.06) rotate(1deg);   }
+  100% { opacity: 1; transform: scale(1)    rotate(0deg);   }
+}
+
+@keyframes float {
+  0%,100% { transform: translateY(0px)  rotate(0deg);    }
+  28%     { transform: translateY(-7px) rotate(1.4deg);  }
+  72%     { transform: translateY(5px)  rotate(-1.1deg); }
+}
+
+.tag {
+  display: inline-block;
+  padding: .65rem 1.5rem;
+  border-radius: 999px;
+  font-size: 1em;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  letter-spacing: .01em;
+  box-shadow: 0 4px 24px rgba(0,0,0,.45);
+  cursor: default;
+}
+
+.author {
+  font-size: .6em;
+  color: #64748b;
+  margin-top: .3rem;
+  font-weight: 500;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+.empty-state {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.empty-state p {
+  color: #1e293b;
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+
+.clear-btn {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  background: rgba(239,68,68,.12);
+  color: #fca5a5;
+  border: 1px solid rgba(239,68,68,.25);
+  padding: .5rem 1.2rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s;
+  z-index: 10;
+  letter-spacing: .02em;
+}
+
+.clear-btn:hover { background: rgba(239,68,68,.28); }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Word Wall</h1>
+  <span class="count" id="count"></span>
+</div>
+<div class="wall" id="wall"></div>
+<button class="clear-btn" id="clearBtn">Clear Wall</button>
+<script>
+var wall = document.getElementById('wall');
+var countEl = document.getElementById('count');
+var stored = [];
+var posMap = {};
+var wordCount = 0;
+var cellOrder = [];
+
+var COLORS = [
+  '#6366f1','#8b5cf6','#a855f7','#d946ef','#ec4899',
+  '#f43f5e','#ef4444','#f97316','#eab308','#84cc16',
+  '#22c55e','#14b8a6','#06b6d4','#3b82f6'
+];
+
+function colorFor(word) {
+  var h = 0;
+  for (var i = 0; i < word.length; i++) h = word.charCodeAt(i) + ((h << 5) - h);
+  return COLORS[Math.abs(h) % COLORS.length];
+}
+
+function lighten(hex, amt) {
+  var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  r = Math.min(255, r+amt); g = Math.min(255, g+amt); b = Math.min(255, b+amt);
+  return '#' + [r,g,b].map(function(c){return c.toString(16).padStart(2,'0');}).join('');
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function buildCellOrder() {
+  var COLS = 5, ROWS = 4, cells = [];
+  for (var i = 0; i < COLS * ROWS; i++) cells.push(i);
+  for (var j = cells.length - 1; j > 0; j--) {
+    var k = Math.floor(Math.random() * (j + 1));
+    var t = cells[j]; cells[j] = cells[k]; cells[k] = t;
+  }
+  return cells;
+}
+
+function placeWord(id, index) {
+  var COLS = 5, ROWS = 4;
+  if (!cellOrder.length) cellOrder = buildCellOrder();
+  var ci = cellOrder[index % cellOrder.length];
+  var col = ci % COLS, row = Math.floor(ci / COLS);
+  var cw = 74 / COLS, ch = 76 / ROWS;
+  posMap[id] = {
+    left: 9  + col * cw + Math.random() * cw * 0.6,
+    top:  8  + row * ch + Math.random() * ch * 0.6,
+    size: (1.0 + Math.random() * 0.95).toFixed(2)
+  };
+}
+
+function startFloat(el) {
+  var dur   = (3.5 + Math.random() * 2.5).toFixed(1) + 's';
+  var delay = -(Math.random() * 4).toFixed(1) + 's';
+  el.style.animation = 'float ' + dur + ' ease-in-out ' + delay + ' infinite';
+}
+
+function addWord(entry, delayMs) {
+  if (document.getElementById('w-' + entry.id)) return;
+  var idx = wordCount++;
+  if (!posMap[entry.id]) placeWord(entry.id, idx);
+  var pos = posMap[entry.id];
+
+  var color   = colorFor(entry.word);
+  var grad    = 'background:linear-gradient(135deg,' + color + ',' + lighten(color, 30) + ')';
+  var author  = entry.name && entry.name !== 'anon' ? entry.name : '';
+  var authHtml = author ? '<span class="author">' + escapeHtml(author) + '</span>' : '';
+
+  var el = document.createElement('div');
+  el.className = 'item';
+  el.id = 'w-' + entry.id;
+  el.style.cssText = 'left:' + pos.left + '%;top:' + pos.top + '%;font-size:' + pos.size + 'rem;opacity:0';
+  el.innerHTML = '<span class="tag" style="' + grad + '">' + escapeHtml(entry.word) + '</span>' + authHtml;
+  wall.appendChild(el);
+
+  setTimeout(function() {
+    el.style.opacity = '';
+    el.style.animation = 'pop-in 0.62s cubic-bezier(.175,.885,.32,1.275) both';
+    el.addEventListener('animationend', function() { startFloat(el); }, { once: true });
+    syncCount();
+  }, delayMs || 0);
+}
+
+function syncCount() {
+  var n = stored.length;
+  countEl.textContent = n ? n + ' word' + (n !== 1 ? 's' : '') : '';
+  var em = document.getElementById('es');
+  if (n === 0 && !em) {
+    var d = document.createElement('div');
+    d.className = 'empty-state'; d.id = 'es';
+    d.innerHTML = '<p>Waiting for words…</p>';
+    wall.appendChild(d);
+  } else if (n > 0 && em) {
+    em.remove();
+  }
+}
+
+function clearWall() {
+  wall.innerHTML = '';
+  stored = []; posMap = {}; wordCount = 0; cellOrder = [];
+  syncCount();
+}
+
+fetch('/words').then(function(r) { return r.json(); }).then(function(data) {
+  stored = data.words || [];
+  if (!stored.length) { syncCount(); return; }
+  stored.forEach(function(entry, i) {
+    setTimeout(function() { addWord(entry, 0); }, i * 55);
+  });
+});
+
+var es = new EventSource('/events');
+es.addEventListener('word', function(e) {
+  var item = JSON.parse(e.data);
+  stored.push(item);
+  addWord(item, 0);
+});
+es.addEventListener('reset', clearWall);
+
+document.getElementById('clearBtn').addEventListener('click', function() {
+  fetch('/clear', { method: 'POST' }).then(clearWall);
+});
+</script>
+</body>
+</html>

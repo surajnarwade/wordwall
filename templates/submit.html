@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Wall — Submit</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  overflow: hidden;
+}
+
+.bg-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: .12;
+  pointer-events: none;
+  z-index: 0;
+}
+.bg-orb.a { width: 500px; height: 500px; background: #6366f1; top: -10%; left: -5%; }
+.bg-orb.b { width: 400px; height: 400px; background: #a855f7; bottom: -10%; right: -5%; }
+.bg-orb.c { width: 300px; height: 300px; background: #ec4899; top: 50%; left: 60%; }
+
+.card {
+  position: relative;
+  z-index: 1;
+  background: rgba(30, 27, 75, .45);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(148, 163, 184, .1);
+  border-radius: 24px;
+  padding: 3rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 30px 60px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.logo { text-align: center; margin-bottom: 2rem; }
+
+.logo h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #e0e7ff, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -.02em;
+}
+
+.logo p {
+  color: #64748b;
+  font-size: .875rem;
+  margin-top: .35rem;
+  letter-spacing: .02em;
+}
+
+.form-group { margin-bottom: 1rem; }
+
+.form-group label {
+  display: block;
+  color: #94a3b8;
+  font-size: .75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: .4rem;
+}
+
+input {
+  width: 100%;
+  padding: .8rem 1rem;
+  border: 1px solid rgba(148, 163, 184, .15);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, .6);
+  color: #f1f5f9;
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+input:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, .2);
+}
+
+input::placeholder { color: #475569; }
+
+.btn {
+  width: 100%;
+  margin-top: .5rem;
+  padding: .9rem;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #f9fafb;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity .2s, transform .1s;
+  letter-spacing: .01em;
+}
+
+.btn:hover { opacity: .9; }
+.btn:active { transform: scale(.98); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+#msg {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: .875rem;
+  color: #34d399;
+  display: none;
+  font-weight: 600;
+}
+
+.err {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: .875rem;
+  color: #f87171;
+  display: none;
+  font-weight: 600;
+}
+
+a {
+  color: #818cf8;
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+.footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(148, 163, 184, .1);
+}
+
+.footer span { color: #475569; font-size: .8rem; }
+</style>
+</head>
+<body>
+<div class="bg-orb a"></div>
+<div class="bg-orb b"></div>
+<div class="bg-orb c"></div>
+
+<div class="card">
+  <div class="logo">
+    <h1>Word Wall</h1>
+    <p>Share your thought</p>
+  </div>
+  <form id="f">
+    <div class="form-group">
+      <label for="name">Name</label>
+      <input id="name" name="name" placeholder="Your name..." required autocomplete="off" />
+    </div>
+    <div class="form-group">
+      <label for="word">Word</label>
+      <input id="word" name="word" placeholder="Type a word..." required autocomplete="off" />
+    </div>
+    <div class="form-group">
+      <label for="upstream_url">Upstream URL <span style="color:#475569;font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <input id="upstream_url" name="upstream_url" type="url" placeholder="http://other-wall/  (leave blank to post here)" autocomplete="off" />
+    </div>
+    <button class="btn" id="btn" type="submit">Post to Wall</button>
+  </form>
+  <div id="msg">&#10003; Posted!</div>
+  <div class="err" id="err"></div>
+  <div class="footer">
+    <span><a href="?mode=admin">View the wall &#8594;</a></span>
+  </div>
+</div>
+
+<script>
+(function() {
+  var nameInput = document.getElementById('name');
+  var upstreamInput = document.getElementById('upstream_url');
+
+  fetch('/_hostname').then(function(r) { return r.json(); }).then(function(d) {
+    if (d.hostname) { nameInput.placeholder = d.hostname; nameInput.value = d.hostname; }
+  }).catch(function() {});
+
+  var saved = localStorage.getItem('ww_upstream_url');
+  if (saved) upstreamInput.value = saved;
+
+  upstreamInput.addEventListener('change', function() {
+    localStorage.setItem('ww_upstream_url', upstreamInput.value.trim());
+  });
+
+  var f = document.getElementById('f'), msg = document.getElementById('msg'),
+      err = document.getElementById('err'), btn = document.getElementById('btn');
+  f.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var name = f.name.value.trim() || 'anon';
+    var word = f.word.value.trim();
+    var upstream_url = upstreamInput.value.trim();
+    if (!word) return;
+    btn.disabled = true;
+    btn.textContent = 'Posting...';
+    err.style.display = 'none';
+    localStorage.setItem('ww_upstream_url', upstream_url);
+    fetch('/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ word: word, name: name, upstream_url: upstream_url })
+    }).then(function(r) { return r.json(); }).then(function() {
+      f.word.value = '';
+      msg.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Post to Wall';
+      setTimeout(function() { msg.style.display = 'none'; }, 2000);
+    }).catch(function(e) {
+      err.textContent = 'Failed to post. Check the console.';
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Post to Wall';
+      console.error('Submit failed:', e);
+    });
+  });
+})();
+</script>
+</body>
+</html>

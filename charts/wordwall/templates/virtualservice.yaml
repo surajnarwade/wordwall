@@ -1,0 +1,20 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "wordwall.name" . }}
+  labels:
+    {{- include "wordwall.labels" . | nindent 4 }}
+spec:
+  gateways:
+    - {{ .Values.istio.gateway }}
+  hosts:
+    {{- toYaml .Values.istio.hosts | nindent 4 }}
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: {{ include "wordwall.name" . }}
+            port:
+              number: {{ .Values.service.port }}
