@@ -62,6 +62,26 @@ body {
   letter-spacing: .02em;
 }
 
+.host-badge {
+  margin-top: .9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  padding: .45rem .8rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, .45);
+  border: 1px solid rgba(148, 163, 184, .12);
+  color: #cbd5e1;
+  font-size: .78rem;
+  font-weight: 600;
+}
+
+.host-badge strong {
+  color: #e2e8f0;
+  font-weight: 700;
+}
+
 .form-group { margin-bottom: 1rem; }
 
 .form-group label {
@@ -157,6 +177,7 @@ a:hover { text-decoration: underline; }
   <div class="logo">
     <h1>Word Wall</h1>
     <p>Share your thought</p>
+    <div class="host-badge">Current host <strong id="currentHost">loading...</strong></div>
   </div>
   <form id="f">
     <div class="form-group">
@@ -186,7 +207,11 @@ a:hover { text-decoration: underline; }
   var upstreamInput = document.getElementById('upstream_url');
 
   fetch('/_hostname').then(function(r) { return r.json(); }).then(function(d) {
-    if (d.hostname) { nameInput.placeholder = d.hostname; nameInput.value = d.hostname; }
+    if (d.hostname) {
+      document.getElementById('currentHost').textContent = d.hostname;
+      nameInput.placeholder = d.hostname;
+      nameInput.value = d.hostname;
+    }
   }).catch(function() {});
 
   var saved = localStorage.getItem('ww_upstream_url');
@@ -212,14 +237,22 @@ a:hover { text-decoration: underline; }
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ word: word, name: name, upstream_url: upstream_url })
-    }).then(function(r) { return r.json(); }).then(function() {
+    }).then(function(r) {
+      return r.json().catch(function() { return {}; }).then(function(data) {
+        if (!r.ok) {
+          throw new Error(data.message || data.error || 'Failed to post.');
+        }
+        return data;
+      });
+    }).then(function(data) {
       f.word.value = '';
+      msg.textContent = data.forwarded ? '\u2713 Posted and forwarded!' : '\u2713 Posted!';
       msg.style.display = 'block';
       btn.disabled = false;
       btn.textContent = 'Post to Wall';
       setTimeout(function() { msg.style.display = 'none'; }, 2000);
     }).catch(function(e) {
-      err.textContent = 'Failed to post. Check the console.';
+      err.textContent = e && e.message ? e.message : 'Failed to post. Check the console.';
       err.style.display = 'block';
       btn.disabled = false;
       btn.textContent = 'Post to Wall';

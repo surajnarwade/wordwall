@@ -15,6 +15,10 @@ logger = logging.getLogger("wordwall")
 
 UPSTREAM_URL = os.getenv("UPSTREAM_URL", "").rstrip("/")
 
+
+def _current_hostname() -> str:
+    return os.getenv("HOSTNAME") or socket.gethostname() or "unknown"
+
 # Load templates from files
 _DIR = os.path.join(os.path.dirname(__file__), "templates")
 with open(os.path.join(_DIR, "submit.html")) as f:
@@ -45,11 +49,24 @@ async def _forward_upstream(entry: dict, upstream_url: str | None = None):
     url = upstream_url or UPSTREAM_URL
     if not url or _http is None:
         return
+    target = f"{url}/forward"
     try:
-        r = await _http.post(f"{url}/forward", json=entry)
+        r = await _http.post(target, json=entry)
         r.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        body = exc.response.text.strip()
+        if len(body) > 200:
+            body = f"{body[:200]}..."
+        logger.warning(
+            "upstream forward failed url=%s status=%s body=%r",
+            target,
+            exc.response.status_code,
+            body,
+        )
+        raise RuntimeError(f"{target} returned {exc.response.status_code}") from exc
     except Exception as exc:
-        logger.warning("upstream forward failed: %s", exc)
+        logger.warning("upstream forward failed url=%s error=%s", target, exc)
+        raise RuntimeError(f"request to {target} failed") from exc
 
 
 # --- App ---
@@ -79,13 +96,7 @@ async def index(mode: str = "submit"):
 
 @app.get("/_hostname")
 async def hostname(request: Request):
-    client = request.client
-    if client:
-        try:
-            return {"hostname": socket.gethostbyaddr(client.host)[0]}
-        except (socket.herror, socket.gaierror):
-            pass
-    return {"hostname": client.host if client else "unknown"}
+    return {"hostname": _current_hostname()}
 
 
 @app.post("/submit")
@@ -97,19 +108,23 @@ async def submit(request: Request):
     name = body.get("name", "anon").strip() or "anon"
     req_upstream = body.get("upstream_url", "").strip().rstrip("/") or None
 
-    client = request.client
-    if client:
-        try:
-            hostname = socket.gethostbyaddr(client.host)[0]
-        except (socket.herror, socket.gaierror):
-            hostname = client.host
-    else:
-        hostname = "unknown"
+    hostname = _current_hostname()
 
     entry = {"id": str(uuid.uuid4())[:8], "word": w, "name": name, "hostname": hostname, "time": time.time()}
+    target_url = req_upstream or UPSTREAM_URL
+    if target_url:
+        try:
+            await _forward_upstream(entry, target_url)
+        except RuntimeError as exc:
+            return JSONResponse(
+                {
+                    "error": "upstream_forward_failed",
+                    "message": str(exc),
+                },
+                status_code=502,
+            )
     await _broadcast(entry)
-    asyncio.create_task(_forward_upstream(entry, req_upstream))
-    return {"ok": True, "word": w}
+    return {"ok": True, "word": w, "forwarded": bool(target_url)}
 
 
 @app.post("/forward")
