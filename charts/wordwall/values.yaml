@@ -1,15 +1,29 @@
 # name is required — must be set on every install/upgrade
 name: "suraj"
 
+namespace: "playground"
+
+backstage:
+  component: "httpbin"
+
 image:
   repository: ghcr.io/surajnarwade/wordwall
-  tag: latest
+  tag: sha-2225c77
   pullPolicy: IfNotPresent
 
 replicaCount: 1
 
 service:
   port: 8000
+
+probes:
+  path: /health
+  liveness:
+    initialDelaySeconds: 10
+    periodSeconds: 15
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 10
 
 resources: {}
   # limits:
@@ -20,6 +34,7 @@ resources: {}
   #   memory: 128Mi
 
 istio:
-  gateway: istio-system/ingressgateway
-  hosts:
-    - wordwall.example.com
+  gateway: istio-ingress/public
+
+virtualService:
+  enabled: false

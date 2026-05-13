@@ -1,14 +1,16 @@
-apiVersion: networking.istio.io/v1beta1
+{{- if .Values.virtualService.enabled }}
+apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
   name: {{ include "wordwall.name" . }}
+  namespace: {{ .Values.namespace }}
   labels:
     {{- include "wordwall.labels" . | nindent 4 }}
 spec:
   gateways:
     - {{ .Values.istio.gateway }}
   hosts:
-    {{- toYaml .Values.istio.hosts | nindent 4 }}
+  - {{ .Values.name }}.sbx.suraj.com
   http:
     - match:
         - uri:
@@ -18,3 +20,4 @@ spec:
             host: {{ include "wordwall.name" . }}
             port:
               number: {{ .Values.service.port }}
+{{- end }}

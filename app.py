@@ -87,6 +87,11 @@ async def lifespan(_: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
+@app.get("/health")
+async def health():
+    return {"ok": True}
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(mode: str = "submit"):
     if mode == "admin":
