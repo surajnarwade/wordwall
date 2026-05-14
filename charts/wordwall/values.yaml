@@ -25,16 +25,21 @@ probes:
     initialDelaySeconds: 5
     periodSeconds: 10
 
-resources: {}
-  # limits:
-  #   cpu: 500m
-  #   memory: 256Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
 
 istio:
   gateway: istio-ingress/public
+
+serviceAccountName: default
+
+authorizationPolicy:
+  enabled: false
 
 virtualService:
   enabled: false

@@ -35,6 +35,30 @@ docker build -t wordwall .
 docker run -p 3000:8000 -e PORT=3000 wordwall
 ```
 
+### Helm resources
+
+The Helm chart exposes container CPU and memory requests/limits via `resources` in `charts/wordwall/values.yaml`.
+
+```yaml
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+```
+
+Override them at install/upgrade time with your own values file or `--set`, for example:
+
+```bash
+helm upgrade --install wordwall charts/wordwall \
+  --set resources.requests.cpu=200m \
+  --set resources.requests.memory=256Mi \
+  --set resources.limits.cpu=1 \
+  --set resources.limits.memory=512Mi
+```
+
 ## How it worksq
 
 - **FastAPI** serves the app and manages an in-memory word store.

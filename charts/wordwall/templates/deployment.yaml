@@ -15,6 +15,7 @@ spec:
       labels:
         {{- include "wordwall.labels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ .Values.serviceAccountName | quote }}
       securityContext:
         runAsNonRoot: true
         seccompProfile:
